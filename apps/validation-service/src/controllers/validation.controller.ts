@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ValidationService } from '../services/validation.service';
 import { ValidationRequestDto } from '../dto/validation-request.dto';
-import { ValidationResult } from '../domain/validation-result.interface';
+import { ValidationResponse } from '../domain/validation-result.interface';
 
 @Controller('validations')
 export class ValidationController {
@@ -10,7 +10,11 @@ export class ValidationController {
   @Post()
   validateExpense(
     @Body() payload: ValidationRequestDto,
-  ): Promise<ValidationResult> {
-    return this.validationService.validateExpense(payload);
+  ): Promise<ValidationResponse> {
+    return this.validationService.validateExpense(payload).then(({ gasto_id, status, alertas }) => ({
+      gasto_id,
+      status,
+      alertas,
+    }));
   }
 }

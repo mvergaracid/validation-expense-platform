@@ -99,8 +99,8 @@ const evaluateHistoricalExpense = (
     rule.evaluate(context);
   }
 
-  const { estadoFinal, alertas } = context.toResult();
-  return { status: estadoFinal, alerts: alertas };
+  const { status, alertas } = context.toResult();
+  return { status, alerts: alertas.map((alert) => alert.mensaje) };
 };
 
 export const parseHistoricalCsvCases = (): CsvValidationCase[] => {

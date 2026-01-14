@@ -5,10 +5,22 @@ export interface ValidationSuggestion {
   estado: ValidationStatus;
 }
 
+export interface ValidationAlert {
+  codigo: string;
+  mensaje: string;
+}
+
 export interface ValidationResult {
-  estadoFinal: ValidationStatus;
-  alertas: string[];
+  gasto_id: string;
+  status: ValidationStatus;
+  alertas: ValidationAlert[];
   sugerencias: ValidationSuggestion[];
   montoConvertido: number;
   monedaBase: string;
+}
+
+export interface ValidationResponse {
+  gasto_id: string;
+  status: ValidationStatus;
+  alertas: ValidationAlert[];
 }

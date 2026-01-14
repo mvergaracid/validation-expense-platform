@@ -3,9 +3,11 @@ import { differenceInCalendarDays, isValid } from 'date-fns';
 import { Expense } from './expense.interface';
 import { Policies } from './policies.interface';
 import {
+  ValidationAlert,
   ValidationResult,
   ValidationSuggestion,
 } from './validation-result.interface';
+import { ValidationResponse } from './validation-result.interface';
 import { ValidationStatus } from './validation-status.enum';
 import { getAppTimezone, getZonedNow } from '../config/timezone.config';
 
@@ -27,7 +29,7 @@ interface ValidationContextParams {
 export class ValidationContext {
   readonly expense: Expense;
   readonly policies: Policies;
-  readonly alerts: string[] = [];
+  readonly alerts: ValidationAlert[] = [];
   readonly sugerencias: ValidationSuggestion[] = [];
   readonly monedaBase: string;
   readonly montoConvertido: number;
@@ -45,11 +47,15 @@ export class ValidationContext {
     this.daysSinceExpense = this.calculateDaysSinceExpense();
   }
 
-  addAlert(alert: string): void {
+  addAlert(alert: ValidationAlert): void {
     this.alerts.push(alert);
   }
 
-  addSuggestion(rule: string, status: ValidationStatus, alert?: string): void {
+  addSuggestion(
+    rule: string,
+    status: ValidationStatus,
+    alert?: ValidationAlert,
+  ): void {
     this.sugerencias.push({ regla: rule, estado: status });
     if (alert) {
       this.addAlert(alert);
@@ -58,16 +64,28 @@ export class ValidationContext {
   }
 
   getFinalStatus(): ValidationStatus {
+    if (!this.sugerencias.length) {
+      return ValidationStatus.PENDIENTE;
+    }
     return this.currentStatus;
   }
 
   toResult(): ValidationResult {
     return {
-      estadoFinal: this.getFinalStatus(),
+      gasto_id: this.expense.id,
+      status: this.getFinalStatus(),
       alertas: [...this.alerts],
       sugerencias: [...this.sugerencias],
       montoConvertido: this.montoConvertido,
       monedaBase: this.monedaBase,
+    };
+  }
+
+  toResponse(): ValidationResponse {
+    return {
+      gasto_id: this.expense.id,
+      status: this.getFinalStatus(),
+      alertas: [...this.alerts],
     };
   }
 

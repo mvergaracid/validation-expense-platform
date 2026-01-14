@@ -74,7 +74,15 @@
     },
     "collectCoverage": true,
     "collectCoverageFrom": [
-      "src/**/*.(t|j)s"
+      "src/**/*.(t|j)s",
+      "!src/main.ts",
+      "!src/app.module.ts",
+      "!src/validation.module.ts",
+      "!src/validation.tokens.ts",
+      "!src/controllers/**",
+      "!src/dto/**",
+      "!src/config/**",
+      "!src/fixtures/**"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": [

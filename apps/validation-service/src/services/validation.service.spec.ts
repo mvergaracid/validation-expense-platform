@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ValidationService } from './validation.service';
 import { ValidationStatus } from '../domain/validation-status.enum';
+import { ValidationResult } from '../domain/validation-result.interface';
 import { VALIDATION_RULES } from '../validation.tokens';
 import { ExpenseAgeRule } from '../rules/expense-age.rule';
 import { CategoryLimitRule } from '../rules/category-limit.rule';
@@ -54,6 +55,9 @@ const baseExpense: ValidationRequestDto['gasto'] = {
   cost_center: 'growth',
 } as const;
 
+const hasAlertMessage = (result: ValidationResult, snippet: string): boolean =>
+  result.alertas.some((alert) => alert.mensaje.includes(snippet));
+
 describe('ValidationService', () => {
   let service: ValidationService;
   let moduleRef: TestingModule;
@@ -88,17 +92,9 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.RECHAZADO);
-      expect(
-        result.alertas.some((alert) =>
-          alert.includes('excede el límite máximo de 60 días'),
-        ),
-      ).toBe(true);
-      expect(
-        result.alertas.some((alert) =>
-          alert.includes('excede el límite máximo (150)'),
-        ),
-      ).toBe(true);
+      expect(result.status).toBe(ValidationStatus.RECHAZADO);
+      expect(hasAlertMessage(result, 'Gasto excede los 60 días.')).toBe(true);
+      expect(hasAlertMessage(result, 'excede el límite máximo (150)')).toBe(true);
     });
 
     it('mantiene estado pendiente cuando hay alertas de antigüedad y monto', async () => {
@@ -116,17 +112,11 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.PENDIENTE);
-      expect(
-        result.alertas.some((alert) =>
-          alert.includes('ventana de aprobación automática'),
-        ),
-      ).toBe(true);
-      expect(
-        result.alertas.some((alert) =>
-          alert.includes('Requiere revisión: el monto'),
-        ),
-      ).toBe(true);
+      expect(result.status).toBe(ValidationStatus.PENDIENTE);
+      expect(hasAlertMessage(result, 'Gasto excede los 30 días. Requiere revisión.')).toBe(
+        true,
+      );
+      expect(hasAlertMessage(result, 'Requiere revisión: el monto')).toBe(true);
     });
 
     it('rechaza por centro de costo prohibido aunque otras reglas aprueben', async () => {
@@ -140,11 +130,9 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.RECHAZADO);
+      expect(result.status).toBe(ValidationStatus.RECHAZADO);
       expect(
-        result.alertas.some((alert) =>
-          alert.includes('prohibida para el centro de costo'),
-        ),
+        hasAlertMessage(result, "El C.C. 'core_engineering' no puede reportar 'food'."),
       ).toBe(true);
     });
   });
@@ -161,7 +149,7 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.APROBADO);
+      expect(result.status).toBe(ValidationStatus.APROBADO);
     });
 
     it('marca como pendiente cuando 30 < días ≤ 60', async () => {
@@ -175,11 +163,9 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.PENDIENTE);
+      expect(result.status).toBe(ValidationStatus.PENDIENTE);
       expect(
-        result.alertas.some((alert) =>
-          alert.includes('ventana de aprobación automática'),
-        ),
+        hasAlertMessage(result, 'Gasto excede los 30 días. Requiere revisión.'),
       ).toBe(true);
     });
 
@@ -194,10 +180,8 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.RECHAZADO);
-      expect(
-        result.alertas.some((alert) => alert.includes('excede el límite máximo')),
-      ).toBe(true);
+      expect(result.status).toBe(ValidationStatus.RECHAZADO);
+      expect(hasAlertMessage(result, 'Gasto excede los 60 días.')).toBe(true);
     });
   });
 
@@ -213,7 +197,7 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.APROBADO);
+      expect(result.status).toBe(ValidationStatus.APROBADO);
     });
 
     it('marca como pendiente cuando 100 < monto ≤ 150 USD', async () => {
@@ -227,12 +211,8 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.PENDIENTE);
-      expect(
-        result.alertas.some((alert) =>
-          alert.includes('Requiere revisión: el monto'),
-        ),
-      ).toBe(true);
+      expect(result.status).toBe(ValidationStatus.PENDIENTE);
+      expect(hasAlertMessage(result, 'Requiere revisión: el monto')).toBe(true);
     });
 
     it('rechaza montos > 150 USD', async () => {
@@ -246,10 +226,8 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.RECHAZADO);
-      expect(
-        result.alertas.some((alert) => alert.includes('excede el límite máximo')),
-      ).toBe(true);
+      expect(result.status).toBe(ValidationStatus.RECHAZADO);
+      expect(hasAlertMessage(result, 'excede el límite máximo')).toBe(true);
     });
   });
 
@@ -295,7 +273,7 @@ describe('ValidationService', () => {
       new Date('2025-01-10'),
     );
 
-    expect(result.estadoFinal).toBe(ValidationStatus.APROBADO);
+    expect(result.status).toBe(ValidationStatus.APROBADO);
     expect(result.alertas).toHaveLength(0);
     expect(result.sugerencias).toHaveLength(3); // una por regla
   });
@@ -311,8 +289,10 @@ describe('ValidationService', () => {
       new Date('2025-01-10'),
     );
 
-    expect(result.estadoFinal).toBe(ValidationStatus.PENDIENTE);
-    expect(result.alertas.some((alert) => alert.includes('ventana de aprobación'))).toBe(true);
+    expect(result.status).toBe(ValidationStatus.PENDIENTE);
+    expect(hasAlertMessage(result, 'Gasto excede los 30 días. Requiere revisión.')).toBe(
+      true,
+    );
   });
 
   it('rechaza gasto por política de centro de costo', async () => {
@@ -326,9 +306,11 @@ describe('ValidationService', () => {
       new Date('2025-01-10'),
     );
 
-    expect(result.estadoFinal).toBe(ValidationStatus.RECHAZADO);
+    expect(result.status).toBe(ValidationStatus.RECHAZADO);
     expect(result.alertas).toContainEqual(
-      expect.stringContaining('prohibida para el centro de costo'),
+      expect.objectContaining({
+        mensaje: "El C.C. 'core_engineering' no puede reportar 'food'.",
+      }),
     );
   });
 
@@ -390,7 +372,7 @@ describe('ValidationService', () => {
         new Date('2025-01-10'),
       );
 
-      expect(result.estadoFinal).toBe(ValidationStatus.APROBADO);
+      expect(result.status).toBe(ValidationStatus.APROBADO);
     });
 
     it('lanza error cuando no hay politicas explícitas ni DEFAULT_POLICIES', async () => {
@@ -492,11 +474,11 @@ describe('ValidationService', () => {
               HISTORICAL_NOW,
             );
 
-            expect(result.estadoFinal).toBe(testCase.expectedStatus);
+            expect(result.status).toBe(testCase.expectedStatus);
             if (testCase.expectedAlertIncludes?.length) {
               for (const snippet of testCase.expectedAlertIncludes) {
                 expect(
-                  result.alertas.some((alert) => alert.includes(snippet)),
+                  hasAlertMessage(result, snippet),
                 ).toBe(true);
               }
             } else {

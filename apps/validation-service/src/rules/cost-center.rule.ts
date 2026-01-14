@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ValidationRule } from './validation-rule.interface';
 import { ValidationContext } from '../domain/validation-context';
 import { ValidationStatus } from '../domain/validation-status.enum';
+import { ValidationAlertCode } from '../domain/validation-alert-code.enum';
 
 @Injectable()
 export class CostCenterRule implements ValidationRule {
@@ -24,10 +25,9 @@ export class CostCenterRule implements ValidationRule {
       return;
     }
 
-    context.addSuggestion(
-      this.name,
-      ValidationStatus.RECHAZADO,
-      `La categoría ${categoria} está prohibida para el centro de costo ${cost_center}.`,
-    );
+    context.addSuggestion(this.name, ValidationStatus.RECHAZADO, {
+      codigo: ValidationAlertCode.POLITICA_CENTRO_COSTO,
+      mensaje: `El C.C. '${cost_center}' no puede reportar '${categoria}'.`,
+    });
   }
 }

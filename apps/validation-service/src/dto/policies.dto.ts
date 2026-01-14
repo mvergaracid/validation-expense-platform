@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import {
   IsArray,
   IsNumber,
@@ -5,8 +6,9 @@ import {
   IsPositive,
   IsString,
   ValidateNested,
+  validateSync,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type, plainToInstance } from 'class-transformer';
 import {
   AgePolicy,
   CategoryLimit,
@@ -47,8 +49,7 @@ export class PoliciesDto implements Policies {
   limite_antiguedad: AgePolicyDto;
 
   @IsObject()
-  @ValidateNested({ each: true })
-  @Type(() => CategoryLimitDto)
+  @Transform(({ value }) => transformCategoryLimits(value))
   limites_por_categoria: Record<string, CategoryLimitDto>;
 
   @IsArray()
@@ -56,3 +57,19 @@ export class PoliciesDto implements Policies {
   @Type(() => CostCenterRuleDto)
   reglas_centro_costo: CostCenterRuleDto[];
 }
+
+const transformCategoryLimits = (
+  raw: unknown,
+): Record<string, CategoryLimitDto> => {
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+
+  return Object.entries(raw as Record<string, unknown>).reduce(
+    (acc, [key, value]) => {
+      acc[key] = plainToInstance(CategoryLimitDto, value);
+      return acc;
+    },
+    {} as Record<string, CategoryLimitDto>,
+  );
+};

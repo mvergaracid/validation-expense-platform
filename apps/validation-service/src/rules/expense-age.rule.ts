@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ValidationRule } from './validation-rule.interface';
 import { ValidationContext } from '../domain/validation-context';
 import { ValidationStatus } from '../domain/validation-status.enum';
+import { ValidationAlertCode } from '../domain/validation-alert-code.enum';
 
 @Injectable()
 export class ExpenseAgeRule implements ValidationRule {
@@ -20,7 +21,10 @@ export class ExpenseAgeRule implements ValidationRule {
       context.addSuggestion(
         this.name,
         ValidationStatus.PENDIENTE,
-        `Gasto con ${daysSinceExpense} días supera la ventana de aprobación automática (${pendiente_dias} días).`,
+        {
+          codigo: ValidationAlertCode.LIMITE_ANTIGUEDAD,
+          mensaje: `Gasto excede los ${pendiente_dias} días. Requiere revisión.`,
+        },
       );
       return;
     }
@@ -28,7 +32,10 @@ export class ExpenseAgeRule implements ValidationRule {
     context.addSuggestion(
       this.name,
       ValidationStatus.RECHAZADO,
-      `Gasto con ${daysSinceExpense} días excede el límite máximo de ${rechazado_dias} días.`,
+      {
+        codigo: ValidationAlertCode.LIMITE_ANTIGUEDAD,
+        mensaje: `Gasto excede los ${rechazado_dias} días.`,
+      },
     );
   }
 }

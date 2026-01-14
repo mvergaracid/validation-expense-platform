@@ -97,7 +97,10 @@ const run = async () => {
     };
 
     const result = await service.validateExpense(payload, HISTORICAL_NOW);
-    const resultString = composeResult(result.estadoFinal, result.alertas);
+    const resultString = composeResult(
+      result.status,
+      result.alertas.map((alert) => alert.mensaje),
+    );
 
     const nextLine = [...line];
     nextLine[resultColumnIndex] = resultString;
