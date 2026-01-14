@@ -12,9 +12,9 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /usr/src/app
 ENV NODE_ENV=production \
-  PORT=3000
+  PORT=3001
 COPY package*.json ./
 RUN npm install --ignore-scripts --omit=dev
 COPY --from=builder /usr/src/app/dist ./dist
-EXPOSE 3000
-CMD ["node", "dist/src/main.js"]
+EXPOSE 3001
+CMD ["node", "dist/main.js"]

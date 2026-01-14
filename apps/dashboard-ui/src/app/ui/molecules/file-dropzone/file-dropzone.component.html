@@ -1,0 +1,29 @@
+<div
+  class="mx-auto max-w-2xl rounded-xl border border-dashed bg-surface/30 px-6 py-10 text-center transition"
+  [ngClass]="{
+    'border-primary/60 bg-surface/50': isDragging(),
+    'border-border': !isDragging(),
+    'opacity-60 pointer-events-none': disabled
+  }"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+>
+  <div class="mx-auto h-10 w-10 rounded-full border border-border flex items-center justify-center text-text-muted">
+    <span class="text-lg">↑</span>
+  </div>
+
+  <div class="mt-4 text-sm text-text">
+    Arrastra un archivo CSV o <span class="text-primary">haz clic</span> para seleccionar
+  </div>
+  <div class="mt-1 text-xs text-text-muted">{{ accept }}</div>
+
+  <div class="mt-6">
+    <input
+      type="file"
+      [accept]="accept"
+      class="block w-full text-sm text-text-muted file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-fg hover:file:opacity-90"
+      (change)="onFileInput($event)"
+    />
+  </div>
+</div>

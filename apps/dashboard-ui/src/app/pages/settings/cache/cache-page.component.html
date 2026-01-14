@@ -1,0 +1,150 @@
+<div class="min-h-screen bg-bg text-text">
+  <div class="max-w-5xl mx-auto px-6 py-6">
+    <header class="flex items-center justify-between gap-3">
+      <div>
+        <div class="text-xs tracking-[0.3em] text-text-muted">SETTINGS</div>
+        <h1 class="mt-2 text-2xl font-semibold">Cache</h1>
+      </div>
+    </header>
+
+    @if (error()) {
+      <div class="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm">
+        {{ error() }}
+      </div>
+    }
+
+    <div class="mt-6 rounded-xl border border-border bg-surface p-4">
+      <div class="text-sm font-medium">Redis FX cache</div>
+      <div class="mt-1 text-xs text-text-muted">Keys: fx:* + fx_table:*</div>
+
+      <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div>
+          <div class="text-[11px] tracking-wide text-text-muted">FECHA (YYYY-MM-DD)</div>
+          <input
+            class="mt-2 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-primary"
+            type="text"
+            placeholder="2025-10-20"
+            [value]="dateFilter()"
+            (input)="onDateChange($event)"
+          />
+        </div>
+
+        <div>
+          <div class="text-[11px] tracking-wide text-text-muted">MOSTRAR</div>
+          <app-select-input
+            class="mt-2 block"
+            [value]="listPrefix()"
+            [options]="listPrefixOptions"
+            [disabled]="isLoading() || isDeleting()"
+            (changed)="onListPrefixChange($event)"
+          />
+        </div>
+
+        <div>
+          <div class="text-[11px] tracking-wide text-text-muted">BORRADO</div>
+          <app-select-input
+            class="mt-2 block"
+            [value]="deletePrefix()"
+            [options]="deletePrefixOptions"
+            [disabled]="isLoading() || isDeleting()"
+            (changed)="onDeletePrefixChange($event)"
+          />
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center justify-between gap-3">
+        <div class="text-xs text-text-muted">
+          @if (isLoading()) {
+            Cargando...
+          } @else if (isDeleting()) {
+            Borrando...
+          }
+        </div>
+
+        <div class="flex items-center gap-2">
+          <app-action-button
+            label="Refrescar"
+            variant="secondary"
+            (pressed)="load()"
+            [disabled]="isLoading() || isDeleting()"
+          />
+          <app-action-button
+            label="Borrar cache"
+            variant="danger"
+            (pressed)="clearCache()"
+            [disabled]="isLoading() || isDeleting()"
+          />
+        </div>
+      </div>
+
+      <div class="mt-5 overflow-auto rounded-lg border border-border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-surface-2/60 text-text-muted">
+            <tr>
+              <th class="px-3 py-2 text-left text-[11px] tracking-wide">PREFIX</th>
+              <th class="px-3 py-2 text-left text-[11px] tracking-wide">FROM/BASE</th>
+              <th class="px-3 py-2 text-left text-[11px] tracking-wide">TO/MONEDAS</th>
+              <th class="px-3 py-2 text-left text-[11px] tracking-wide">DATE</th>
+              <th class="px-3 py-2 text-left text-[11px] tracking-wide">RATE</th>
+              <th class="px-3 py-2 text-left text-[11px] tracking-wide">FETCHED</th>
+              <th class="px-3 py-2 text-left text-[11px] tracking-wide">CADUCA</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of items(); track row.key) {
+              <tr class="border-t border-border">
+                <td class="px-3 py-2">{{ row.prefix }}</td>
+                <td class="px-3 py-2">
+                  @if (row.prefix === 'fx') {
+                    {{ row.from }}
+                  } @else {
+                    {{ row.base }}
+                  }
+                </td>
+                <td class="px-3 py-2">
+                  @if (row.prefix === 'fx') {
+                    {{ row.to }}
+                  } @else {
+                    {{ row.currencies }}
+                  }
+                </td>
+                <td class="px-3 py-2">{{ row.date }}</td>
+                <td class="px-3 py-2">
+                  @if (row.prefix === 'fx') {
+                    {{ row.rate }}
+                  } @else {
+                    <button class="text-primary underline text-xs" (click)="toggleExpanded(row.key)">
+                      ver rates
+                    </button>
+                  }
+                </td>
+                <td class="px-3 py-2">{{ row.fetchedAt | date: 'medium' }}</td>
+                <td class="px-3 py-2">
+                  @if (row.expiresAt) {
+                    {{ row.expiresAt | date: 'medium' }}
+                  } @else {
+                    -
+                  }
+                </td>
+              </tr>
+
+              @if (row.prefix === 'fx_table' && expandedKey() === row.key) {
+                <tr class="border-t border-border bg-surface-2/30">
+                  <td class="px-3 py-3" colspan="7">
+                    <div class="text-xs text-text-muted mb-2">rates</div>
+                    <pre class="text-xs overflow-auto max-h-[260px] rounded border border-border bg-bg p-3">{{ row.rates | json }}</pre>
+                  </td>
+                </tr>
+              }
+            }
+            @if (items().length === 0 && !isLoading()) {
+              <tr>
+                <td class="px-3 py-3 text-text-muted" colspan="7">No hay registros para mostrar.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

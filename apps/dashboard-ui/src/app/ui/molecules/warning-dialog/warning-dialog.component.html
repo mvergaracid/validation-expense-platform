@@ -1,0 +1,54 @@
+<dialog
+  open
+  class="fixed inset-0 z-50 flex w-full items-center justify-center bg-transparent p-0"
+  (cancel)="onDialogCancel($event)"
+>
+  <button
+    type="button"
+    class="absolute inset-0 bg-black/60 cursor-pointer"
+    (click)="backdropClicked()"
+    aria-label="Cerrar diálogo"
+  ></button>
+
+  <div class="relative z-10 w-full max-w-sm px-4">
+    <div class="rounded-3xl border px-6 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)]" [ngClass]="toneClass('container')">
+      <div class="flex items-start gap-4">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold"
+          [ngClass]="toneClass('icon')"
+          aria-hidden="true"
+        >
+          !
+        </div>
+        <div class="flex-1">
+          <div class="text-[10px] font-semibold uppercase tracking-[0.35em]" [ngClass]="toneClass('badge')">
+            Advertencia
+          </div>
+          <h2 class="mt-2 text-lg font-semibold">{{ title }}</h2>
+          @if (description) {
+            <p class="mt-2 text-sm leading-relaxed" [ngClass]="toneClass('description')">
+              {{ description }}
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap justify-end gap-3">
+        <app-action-button
+          [label]="cancelLabel"
+          variant="ghost"
+          [extraClass]="'rounded-full px-4 py-2 font-medium transition ' + toneClass('cancel')"
+          [disabled]="cancelDisabled"
+          (pressed)="onCancel()"
+        />
+        <app-action-button
+          [label]="confirmLabel"
+          variant="ghost"
+          [extraClass]="'rounded-full px-4 py-2 font-semibold text-white shadow-inner transition ' + toneClass('confirm')"
+          [disabled]="confirmDisabled"
+          (pressed)="onConfirm()"
+        />
+      </div>
+    </div>
+  </div>
+</dialog>

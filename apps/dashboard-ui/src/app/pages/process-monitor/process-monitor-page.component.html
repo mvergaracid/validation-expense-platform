@@ -1,0 +1,273 @@
+<div class="min-h-screen bg-bg text-text">
+  <div class="max-w-7xl mx-auto px-6 py-6">
+    <header class="flex items-center justify-between gap-3">
+      <div>
+        <div class="text-xs tracking-[0.3em] text-text-muted">PROCESS BATCH</div>
+        <h1 class="mt-2 text-2xl font-semibold">Procesos</h1>
+      </div>
+    </header>
+
+    @if (error()) {
+      <div class="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm">
+        {{ error() }}
+      </div>
+    }
+
+    <main class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[380px_1fr]">
+      <section class="relative rounded-xl border border-border bg-surface">
+        <div class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div class="text-sm font-medium">Process Batches</div>
+          <div class="flex items-center gap-3">
+            @if (isLoadingProcesses()) {
+              <div class="text-xs text-text-muted">Cargando...</div>
+            }
+
+            <app-action-button
+              label="New"
+              variant="primary"
+              ariaLabel="Subir nuevo CSV"
+              (pressed)="openUploadDialog()"
+            />
+          </div>
+        </div>
+
+        <div class="max-h-[70vh] overflow-auto">
+          @for (p of processes(); track p.process_id) {
+            <button
+              type="button"
+              (click)="selectProcess(p.process_id)"
+              class="w-full border-b border-border px-4 py-3 text-left hover:bg-surface-2"
+              [class.bg-surface-2]="p.process_id === selectedProcessId()"
+              [class.ring-2]="p.process_id === selectedProcessId()"
+              [class.ring-primary]="p.process_id === selectedProcessId()"
+              [class.ring-inset]="p.process_id === selectedProcessId()"
+              [class.relative]="p.process_id === selectedProcessId()"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="truncate text-sm font-medium">{{ p.filename }}</div>
+                  <div class="mt-1 text-xs text-text-muted truncate">{{ p.process_id }}</div>
+                </div>
+                <div class="text-xs text-text-muted">{{ p.status }}</div>
+              </div>
+              <div class="mt-2 text-xs text-text-muted">
+                {{ p.created_at | date: 'medium' }}
+              </div>
+            </button>
+          }
+
+          @if (processes().length === 0 && !isLoadingProcesses()) {
+            <div class="p-4 text-sm text-text-muted">No hay procesos para mostrar.</div>
+          }
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-border bg-surface">
+        <div class="border-b border-border px-4 py-3">
+          <div class="flex items-center justify-between gap-3">
+            <div class="text-sm font-medium">Detalle</div>
+
+            @if (selectedProcessId()) {
+              <div class="flex items-center gap-3">
+                <app-action-button
+                  label="Descargar reporte (PDF)"
+                  variant="secondary"
+                  (pressed)="downloadProcessReport()"
+                />
+                <app-action-button
+                  label="Eliminar"
+                  variant="danger"
+                  (pressed)="openDeleteProcessDialog()"
+                  [disabled]="isDeletingProcess()"
+                />
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="max-h-[70vh] overflow-y-auto">
+          @if (!process()) {
+            <div class="p-4 text-sm text-text-muted">Selecciona un proceso para ver sus jobs.</div>
+          }
+
+          @if (process()) {
+            <div class="p-4">
+              <app-process-status-card
+                [process]="process()!"
+                (viewDuplicates)="openAudit('duplicate')"
+                (viewNegatives)="openAudit('negative')"
+              />
+
+              <div class="mt-6">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="text-xs tracking-[0.3em] text-text-muted">JOBS</div>
+                  <div class="flex items-center gap-2">
+                    <select
+                      class="rounded-lg border border-border bg-bg px-2 py-1 text-xs text-text outline-none focus:border-primary"
+                      [value]="jobStatusFilter()"
+                      (change)="jobStatusFilter.set(($any($event.target).value)); applyJobFilters()"
+                    >
+                      <option value="all">todos</option>
+                      <option value="running">running</option>
+                      <option value="success">success</option>
+                      <option value="failed">failed</option>
+                      <option value="skipped">skipped</option>
+                    </select>
+
+                    <select
+                      class="rounded-lg border border-border bg-bg px-2 py-1 text-xs text-text outline-none focus:border-primary"
+                      [value]="validationStatusFilter()"
+                      (change)="validationStatusFilter.set(($any($event.target).value)); applyJobFilters()"
+                    >
+                      <option value="all">validación: todas</option>
+                      <option value="APROBADO">APROBADO</option>
+                      <option value="PENDIENTE">PENDIENTE</option>
+                      <option value="RECHAZADO">RECHAZADO</option>
+                    </select>
+                  </div>
+                </div>
+                @if (isLoadingJobs()) {
+                  <div class="mt-2 text-sm text-text-muted">Cargando jobs...</div>
+                }
+
+                <div class="mt-3 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div class="rounded-lg border border-border" #jobsList (scroll)="onJobsListScroll()">
+                    @for (job of jobs(); track job.job_id; let i = $index) {
+                      @if (i > 0 && batchIndex(job) !== batchIndex(jobs()[i - 1])) {
+                        <div class="bg-surface-2/60 text-text-muted px-4 py-2 text-[11px] tracking-wide border-b border-border">
+                          Batch #{{ batchIndex(job) ?? '?' }}
+                        </div>
+                      }
+                      <button
+                        type="button"
+                        (click)="selectJob(job.job_id)"
+                        [attr.data-job-id]="job.job_id"
+                        class="w-full border-b border-border px-4 py-3 text-left hover:bg-surface-2"
+                        [class.bg-surface-2]="job.job_id === selectedJob()?.run?.job_id"
+                        [class.ring-2]="job.job_id === selectedJob()?.run?.job_id"
+                        [class.ring-primary]="job.job_id === selectedJob()?.run?.job_id"
+                        [class.ring-inset]="job.job_id === selectedJob()?.run?.job_id"
+                        [class.relative]="job.job_id === selectedJob()?.run?.job_id"
+                      >
+                        <div class="flex items-center justify-between gap-3">
+                          <div class="min-w-0">
+                            <div class="truncate text-sm font-medium">{{ job.job_id }}</div>
+                            <div class="mt-1 text-xs text-text-muted truncate">{{ job.pattern }}</div>
+                          </div>
+                          <div class="text-xs">
+                            <span class="rounded-full border border-border px-2 py-1">{{ displayStatus(job) }}</span>
+                          </div>
+                        </div>
+                        <div class="mt-2 text-xs text-text-muted">{{ job.created_at | date: 'medium' }}</div>
+                      </button>
+                    }
+                    @if (jobs().length === 0 && !isLoadingJobs()) {
+                      <div class="p-4 text-sm text-text-muted">No hay jobs para este proceso.</div>
+                    }
+                  </div>
+
+                  <div class="relative">
+                    <div
+                      class="rounded-lg border border-border max-h-[60vh] overflow-y-auto"
+                      [style.transform]="'translateY(' + detailOffsetPx() + 'px)'"
+                      #detailPanel
+                    >
+                      <app-job-run-detail-panel
+                        [detail]="selectedJob()"
+                        emptyText="Selecciona un job para ver su detalle."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+@if (uploadDialogOpen()) {
+  <div class="fixed inset-0 z-50">
+    <button
+      type="button"
+      class="absolute inset-0 bg-black/50"
+      (click)="closeUploadDialog()"
+      aria-label="Cerrar modal"
+    ></button>
+    <div class="relative mx-auto mt-24 w-full max-w-2xl rounded-xl border border-border bg-surface p-5 shadow-xl">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <div class="text-sm font-medium">Subir archivo CSV</div>
+          <div class="mt-1 text-xs text-text-muted">Selecciona un CSV para iniciar un nuevo process_batch.</div>
+        </div>
+        <app-action-button
+          label="X"
+          variant="ghost"
+          ariaLabel="Cerrar"
+          (pressed)="closeUploadDialog()"
+        />
+      </div>
+
+      <div class="mt-4">
+        <app-file-dropzone
+          [accept]="'.csv'"
+          [disabled]="isUploading()"
+          (fileSelected)="onFileSelected($event)"
+        />
+      </div>
+    </div>
+  </div>
+}
+
+@if (deleteProcessDialogOpen()) {
+  <app-warning-dialog
+    title="Eliminar process_batch"
+    description="Esto eliminará de la DB el process_batch, sus batches y los jobs correspondientes."
+    confirmLabel="Aceptar"
+    cancelLabel="Cancelar"
+    tone="danger"
+    (confirm)="confirmDeleteProcess()"
+    (cancel)="cancelDeleteProcess()"
+    [confirmDisabled]="isDeletingProcess()"
+    [cancelDisabled]="isDeletingProcess()"
+  />
+}
+
+@if (auditDialogOpen()) {
+  <div class="fixed inset-0 z-50">
+    <button
+      type="button"
+      class="absolute inset-0 bg-black/50"
+      (click)="closeAudit()"
+      aria-label="Cerrar modal"
+    ></button>
+    <div class="relative mx-auto mt-20 w-full max-w-5xl rounded-xl border border-border bg-surface p-5 shadow-xl">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <div class="text-sm font-medium">Auditoría</div>
+          <div class="mt-1 text-xs text-text-muted">{{ auditTitle() }}</div>
+        </div>
+        <app-action-button label="X" variant="ghost" ariaLabel="Cerrar" (pressed)="closeAudit()" />
+      </div>
+
+      @if (isLoadingAudit()) {
+        <div class="mt-4 text-sm text-text-muted">Cargando...</div>
+      }
+
+      @if (!isLoadingAudit()) {
+        <div class="mt-4 max-h-[70vh] overflow-y-auto rounded-lg border border-border">
+          @for (row of auditItems(); track row.job_id) {
+            <div class="border-t border-border p-3 first:border-t-0">
+              <pre class="text-xs overflow-auto">{{ row.meta | json }}</pre>
+            </div>
+          }
+          @if (auditItems().length === 0) {
+            <div class="px-3 py-3 text-sm text-text-muted">No hay registros para mostrar.</div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

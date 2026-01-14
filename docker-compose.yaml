@@ -1,0 +1,152 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: expense-validation-db
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  worker-service:
+    build:
+      context: ./apps/worker-service
+    environment:
+      WORKER_TRANSPORT: redis
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/expense-validation-db
+      VALIDATION_SERVICE_URL: http://validation-service:3000
+      CURRENCY_SERVICE_URL: http://currency-service:3001
+      DEDUP_TTL_SECONDS: "86400"
+      DEFAULT_POLICIES: '{"moneda_base":"USD","limite_antiguedad":{"pendiente_dias":30,"rechazado_dias":60},"limites_por_categoria":{"food":{"aprobado_hasta":100,"pendiente_hasta":150},"transport":{"aprobado_hasta":200,"pendiente_hasta":250}},"reglas_centro_costo":[{"cost_center":"core_engineering","categoria_prohibida":"food"}]}'
+    depends_on:
+      db-migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      validation-service:
+        condition: service_started
+      currency-service:
+        condition: service_started
+
+  ingestor-service:
+    build:
+      context: ./apps/ingestor-service
+    environment:
+      PORT: "3002"
+      WORKER_TRANSPORT: redis
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/expense-validation-db
+      FILE_STORAGE_BACKEND: local
+      LOCAL_UPLOAD_DIR: /tmp/uploads
+      BATCH_SIZE: "10"
+      PROCESSING_TOPIC: expense.batch
+    ports:
+      - "3002:3002"
+    volumes:
+      - shared_uploads:/tmp/uploads
+    depends_on:
+      db-migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  validation-bff:
+    build:
+      context: ./apps/validation-bff
+    environment:
+      PORT: "3003"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/expense-validation-db
+      INGESTOR_URL: http://ingestor-service:3002
+      CURRENCY_SERVICE_URL: http://currency-service:3001
+      REDIS_URL: redis://redis:6379
+      LOCAL_UPLOAD_DIR: /tmp/uploads
+      DEFAULT_POLICIES: '{"moneda_base":"USD","limite_antiguedad":{"pendiente_dias":30,"rechazado_dias":60},"limites_por_categoria":{"food":{"aprobado_hasta":100,"pendiente_hasta":150},"transport":{"aprobado_hasta":200,"pendiente_hasta":250}},"reglas_centro_costo":[{"cost_center":"core_engineering","categoria_prohibida":"food"}]}'
+    ports:
+      - "3003:3003"
+    volumes:
+      - shared_uploads:/tmp/uploads
+    depends_on:
+      db-migrations:
+        condition: service_completed_successfully
+      ingestor-service:
+        condition: service_started
+
+  dashboard-ui:
+    build:
+      context: ./apps/dashboard-ui
+    environment:
+      API_URL: /api
+      BACKEND_UPSTREAM: http://validation-bff:3003
+      COLOR_BG: "10 10 11"
+      COLOR_SURFACE: "17 17 19"
+      COLOR_BORDER: "39 39 42"
+      COLOR_TEXT: "244 244 245"
+      COLOR_TEXT_MUTED: "161 161 170"
+      COLOR_PRIMARY: "34 211 238"
+      COLOR_PRIMARY_FG: "0 0 0"
+      COLOR_SUCCESS: "34 197 94"
+      COLOR_SUCCESS_FG: "0 0 0"
+      COLOR_DANGER: "239 68 68"
+      COLOR_DANGER_FG: "0 0 0"
+    ports:
+      - "3004:80"
+    depends_on:
+      validation-bff:
+        condition: service_started
+
+  db-migrations:
+    build:
+      context: ./apps/db-migrations
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/expense-validation-db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  validation-service:
+    build:
+      context: ./apps/validation-service
+    environment:
+      PORT: "3000"
+      APP_TIMEZONE: America/Santiago
+      DEFAULT_POLICIES: '{"moneda_base":"USD","limite_antiguedad":{"pendiente_dias":30,"rechazado_dias":60},"limites_por_categoria":{"food":{"aprobado_hasta":100,"pendiente_hasta":150},"transport":{"aprobado_hasta":200,"pendiente_hasta":250}},"reglas_centro_costo":[{"cost_center":"core_engineering","categoria_prohibida":"food"}]}'
+    ports:
+      - "3000:3000"
+
+  currency-service:
+    build:
+      context: ./apps/currency-service
+    environment:
+      PORT: "3001"
+      REDIS_URL: redis://redis:6379
+      BASE_CURRENCY: USD
+      EXCHANGE_RATE_PROVIDER: exchangerate_api
+      OPENEXCHANGERATES_APP_ID: PUT_YOUR_APP_ID_HERE
+      OPENEXCHANGERATES_BASE_URL: https://openexchangerates.org/api
+    ports:
+      - "3101:3001"
+    depends_on:
+      redis:
+        condition: service_started
+
+volumes:
+  shared_uploads:
+  postgres_data:

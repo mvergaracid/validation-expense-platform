@@ -1,0 +1,21 @@
+<div class="pointer-events-none fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-3 px-4">
+  @for (toast of toasts(); track toast.id) {
+    <div
+      class="pointer-events-auto w-full max-w-sm rounded-2xl border px-4 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur"
+      [ngClass]="toneClass(toast.tone)"
+    >
+      <div class="flex items-start gap-3">
+        <div class="rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.3em]" [ngClass]="badgeClass(toast.tone)">
+          {{ toast.tone === 'success' ? 'ÉXITO' : 'ERROR' }}
+        </div>
+        <button type="button" class="ml-auto text-sm text-current/70" (click)="dismiss(toast.id)" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="mt-2 text-sm font-semibold">{{ toast.title }}</div>
+      @if (toast.description) {
+        <div class="mt-1 text-sm text-current/80">
+          {{ toast.description }}
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,56 @@
+<div class="min-h-screen bg-bg text-text">
+  <div class="max-w-5xl mx-auto px-6 py-6">
+    <header class="flex items-center justify-between gap-3">
+      <div>
+        <div class="text-xs tracking-[0.3em] text-text-muted">SETTINGS</div>
+        <h1 class="mt-2 text-2xl font-semibold">Policies</h1>
+      </div>
+    </header>
+
+    @if (error()) {
+      <div class="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm">
+        {{ error() }}
+      </div>
+    }
+
+    <div class="mt-6 rounded-xl border border-border bg-surface p-4">
+      <div class="text-sm font-medium">Política de validación</div>
+      <div class="mt-1 text-xs text-text-muted">Edita el JSON. Esta policy será usada por el worker-service.</div>
+
+      <div class="mt-4">
+        <textarea
+          class="h-[520px] w-full resize-none rounded-lg border border-border bg-bg p-3 font-mono text-xs text-text outline-none focus:border-primary disabled:opacity-50"
+          [value]="policyText()"
+          (input)="onPolicyTextChange($event)"
+          [disabled]="isLoading() || isSaving()"
+          placeholder="Pegue aquí el JSON de la policy"
+        ></textarea>
+      </div>
+
+      <div class="mt-4 flex items-center justify-between gap-3">
+        <div class="text-xs text-text-muted">
+          @if (isLoading()) {
+            Cargando...
+          } @else if (isSaving()) {
+            Guardando...
+          }
+        </div>
+
+        <div class="flex items-center gap-2">
+          <app-action-button
+            label="Recargar"
+            variant="secondary"
+            (pressed)="load()"
+            [disabled]="isLoading() || isSaving()"
+          />
+          <app-action-button
+            label="Guardar"
+            variant="primary"
+            (pressed)="save()"
+            [disabled]="isLoading() || isSaving()"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

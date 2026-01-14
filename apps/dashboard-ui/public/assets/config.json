@@ -1,0 +1,16 @@
+{
+  "API_URL": "/api",
+  "THEME": {
+    "COLOR_BG": "10 10 11",
+    "COLOR_SURFACE": "17 17 19",
+    "COLOR_BORDER": "39 39 42",
+    "COLOR_TEXT": "244 244 245",
+    "COLOR_TEXT_MUTED": "161 161 170",
+    "COLOR_PRIMARY": "34 211 238",
+    "COLOR_PRIMARY_FG": "0 0 0",
+    "COLOR_SUCCESS": "34 197 94",
+    "COLOR_SUCCESS_FG": "0 0 0",
+    "COLOR_DANGER": "239 68 68",
+    "COLOR_DANGER_FG": "0 0 0"
+  }
+}

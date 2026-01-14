@@ -1,0 +1,237 @@
+<div class="min-h-screen bg-bg text-text">
+  <div class="max-w-7xl mx-auto px-6 py-6">
+    <header class="flex items-center justify-between gap-3">
+      <div>
+        <div class="text-xs tracking-[0.3em] text-text-muted">JOB RUNS</div>
+        <h1 class="mt-2 text-2xl font-semibold">Ejecuciones del Worker</h1>
+      </div>
+      <app-action-button label="Refrescar" variant="secondary" (pressed)="refresh()" />
+    </header>
+
+    <div class="mt-6 flex flex-wrap gap-2">
+      <button
+        (click)="setStatusFilter('all')"
+        class="rounded-full border border-border px-3 py-1 text-xs"
+        [class.bg-surface-2]="statusFilter() === 'all'"
+      >
+        Todos
+      </button>
+      <button
+        (click)="setStatusFilter('running')"
+        class="rounded-full border border-border px-3 py-1 text-xs"
+        [class.bg-surface-2]="statusFilter() === 'running'"
+      >
+        Running
+      </button>
+      <button
+        (click)="setStatusFilter('success')"
+        class="rounded-full border border-border px-3 py-1 text-xs"
+        [class.bg-surface-2]="statusFilter() === 'success'"
+      >
+        Success
+      </button>
+      <button
+        (click)="setStatusFilter('failed')"
+        class="rounded-full border border-border px-3 py-1 text-xs"
+        [class.bg-surface-2]="statusFilter() === 'failed'"
+      >
+        Failed
+      </button>
+      <button
+        (click)="setStatusFilter('skipped')"
+        class="rounded-full border border-border px-3 py-1 text-xs"
+        [class.bg-surface-2]="statusFilter() === 'skipped'"
+      >
+        Skipped
+      </button>
+    </div>
+
+    @if (error()) {
+      <div class="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm">
+        {{ error() }}
+      </div>
+    }
+
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <section class="rounded-xl border border-border bg-surface">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div class="flex flex-col gap-1">
+            <div class="text-sm font-medium">Jobs</div>
+            <label class="flex items-center gap-2 text-xs text-text-muted">
+              <input
+                type="checkbox"
+                class="h-4 w-4 rounded border-border bg-bg text-primary focus:ring-primary"
+                [checked]="allJobsSelected()"
+                (click)="onSelectAllChange($event)"
+                (keydown)="onSelectAllKeydown($event)"
+              />
+              Seleccionar todos
+            </label>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-text-muted">
+            <div>{{ jobs().length }} items</div>
+            @if (selectedCount() > 0) {
+              <div class="rounded-full bg-surface-2 px-2 py-0.5 text-[11px]">
+                {{ selectedCount() }} seleccionados
+              </div>
+            }
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            @if (isDeleting()) {
+              <div class="flex items-center gap-2 text-text-muted">
+                <span class="inline-block h-4 w-4 rounded-full border-2 border-border border-t-transparent animate-spin"></span>
+                Borrando…
+              </div>
+            }
+            <app-action-button
+              label="Eliminar seleccionados"
+              variant="danger"
+              (pressed)="openDeleteDialog()"
+              [disabled]="selectedCount() === 0 || isDeleting()"
+            />
+            <app-action-button
+              label="Refrescar"
+              variant="secondary"
+              (pressed)="refresh()"
+              [disabled]="isLoading()"
+            />
+          </div>
+        </div>
+
+        <div class="max-h-[70vh] overflow-auto">
+          @if (isLoading() && jobs().length === 0) {
+            <div class="p-4 text-sm text-text-muted">Cargando...</div>
+          }
+
+          @for (job of jobs(); track job.job_id) {
+            <button
+              (click)="selectJob(job.job_id)"
+              class="w-full border-b border-border px-4 py-3 text-left hover:bg-surface-2"
+            >
+              <div class="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  class="mt-1 h-4 w-4 rounded border-border bg-bg text-primary focus:ring-primary"
+                  [checked]="isJobSelected(job.job_id)"
+                  (click)="onJobCheckboxChange($event, job.job_id)"
+                  (keydown)="onJobCheckboxKeydown($event, job.job_id)"
+                />
+                <div class="flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="truncate">
+                      <div class="text-sm font-medium truncate">{{ job.job_id }}</div>
+                      <div class="mt-1 text-xs text-text-muted">
+                        {{ job.pattern }}
+                        @if (job.expense_id) {
+                          · gasto={{ job.expense_id }}
+                        }
+                        @if (job.meta?.['empleado_id']) {
+                          · emp={{ job.meta!['empleado_id'] }}
+                        }
+                        @if (job.meta?.['monto_original']) {
+                          · monto={{ job.meta!['monto_original'] }}
+                        }
+                        @if (job.meta?.['moneda_original']) {
+                          {{ job.meta!['moneda_original'] }}
+                        }
+                        @if (job.meta?.['categoria']) {
+                          · cat={{ job.meta!['categoria'] }}
+                        }
+                      </div>
+                    </div>
+                    <div class="text-xs">
+                      <span class="rounded-full border border-border px-2 py-1">{{ displayStatus(job) }}</span>
+                    </div>
+                  </div>
+                  <div class="mt-2 text-xs text-text-muted">
+                    {{ job.created_at | date: 'medium' }}
+                  </div>
+                </div>
+              </div>
+            </button>
+          }
+
+          @if (jobs().length === 0 && !isLoading()) {
+            <div class="p-4 text-sm text-text-muted">No hay jobs para mostrar.</div>
+          }
+          <div class="border-t border-border px-4 py-3">
+            <div class="flex flex-wrap items-center justify-between gap-4 text-xs">
+              <div class="text-text-muted">
+                @if (totalItems() > 0) {
+                  Mostrando {{ pageStartItem() }}-{{ pageEndItem() }} de {{ totalItems() }} registros
+                } @else {
+                  Sin resultados para los filtros seleccionados
+                }
+              </div>
+              <div class="flex flex-wrap items-center gap-4">
+                <label class="flex items-center gap-2">
+                  <span class="text-text-muted">Por página</span>
+                  <select
+                    class="rounded-lg border border-border bg-bg px-2 py-1 text-sm"
+                    [value]="pageSize()"
+                    (change)="onPageSizeChange($event)"
+                  >
+                    @for (size of pageSizeOptions; track size) {
+                      <option [value]="size">{{ size }}</option>
+                    }
+                  </select>
+                </label>
+                <div class="flex items-center gap-1">
+                  <app-action-button
+                    label="←"
+                    variant="ghost"
+                    [extraClass]="'rounded-lg border border-border px-2 py-1 text-xs'"
+                    (pressed)="goToPreviousPage()"
+                    [disabled]="!hasPreviousPage() || isLoading()"
+                  />
+                  @for (page of getDisplayedPages(); track page) {
+                    <button
+                      class="rounded-lg border px-2 py-1 text-xs"
+                      [class.border-primary]="page === currentPage()"
+                      [class.bg-primary/10]="page === currentPage()"
+                      [class.border-border]="page !== currentPage()"
+                      (click)="goToPage(page)"
+                      [disabled]="page === currentPage() || isLoading()"
+                    >
+                      {{ page }}
+                    </button>
+                  }
+                  <app-action-button
+                    label="→"
+                    variant="ghost"
+                    [extraClass]="'rounded-lg border border-border px-2 py-1 text-xs'"
+                    (pressed)="goToNextPage()"
+                    [disabled]="!hasNextPage() || isLoading()"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-border bg-surface">
+        <div class="border-b border-border px-4 py-3">
+          <div class="text-sm font-medium">Detalle</div>
+        </div>
+        <app-job-run-detail-panel
+          [detail]="selected()"
+          emptyText="Selecciona un job para ver sus etapas."
+        />
+      </section>
+    </div>
+  </div>
+</div>
+
+@if (deleteDialogOpen()) {
+  <app-warning-dialog
+    [title]="selectedCount() === 1 ? 'Eliminar job' : 'Eliminar jobs'"
+    [description]="deleteDialogDescription()"
+    confirmLabel="Aceptar"
+    cancelLabel="Cancelar"
+    (confirm)="confirmDeleteSelectedJobs()"
+    (cancel)="closeDeleteDialog()"
+    [confirmDisabled]="isDeleting()"
+    [cancelDisabled]="isDeleting()"
+  />
+}

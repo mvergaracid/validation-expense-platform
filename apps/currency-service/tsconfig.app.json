@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/apps/currency-service",
+    "declaration": false
+  },
+  "include": ["src/**/*.ts"]
+}

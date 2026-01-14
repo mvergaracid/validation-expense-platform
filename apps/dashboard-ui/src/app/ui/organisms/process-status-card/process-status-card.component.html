@@ -1,0 +1,64 @@
+<div class="mx-auto mt-8 max-w-2xl rounded-xl border border-border bg-surface/40 p-5">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <div class="text-sm font-medium">{{ process.filename }}</div>
+      <div class="mt-1 text-xs text-text-muted">Process ID: {{ process.process_id }}</div>
+    </div>
+    <app-status-badge [status]="process.status" />
+  </div>
+
+  <div class="mt-5 grid grid-cols-2 gap-4">
+    <div class="rounded-lg border border-border/70 bg-bg/40 p-3">
+      <div class="text-[11px] tracking-wide text-text-muted">TOTAL RECORDS</div>
+      <div class="mt-1 text-lg font-semibold">{{ process.total_records }}</div>
+    </div>
+    <div class="rounded-lg border border-border/70 bg-bg/40 p-3">
+      <div class="text-[11px] tracking-wide text-text-muted">PUBLISHED BATCHES</div>
+      <div class="mt-1 text-lg font-semibold">{{ process.published_batches }}</div>
+    </div>
+
+    @if (process.processed_records !== undefined) {
+      <div class="rounded-lg border border-border/70 bg-bg/40 p-3">
+        <div class="text-[11px] tracking-wide text-text-muted">RECORDS PROCESADOS</div>
+        <div class="mt-1 text-lg font-semibold">{{ process.processed_records }}/{{ process.total_records }}</div>
+      </div>
+      <div class="rounded-lg border border-border/70 bg-bg/40 p-3">
+        <div class="text-[11px] tracking-wide text-text-muted">RECORDS PENDIENTES</div>
+        <div class="mt-1 text-lg font-semibold">{{ process.pending_records ?? 0 }}</div>
+      </div>
+      <div class="rounded-lg border border-border/70 bg-bg/40 p-3">
+        <div class="text-[11px] tracking-wide text-text-muted">RECORDS RECHAZADOS</div>
+        <div class="mt-1 text-lg font-semibold">{{ process.rejected_records ?? 0 }}</div>
+      </div>
+      <div class="rounded-lg border border-border/70 bg-bg/40 p-3">
+        <div class="text-[11px] tracking-wide text-text-muted">RECORDS SKIPPED</div>
+        <div class="mt-1 text-lg font-semibold">{{ process.skipped_records ?? 0 }}</div>
+      </div>
+      <div class="rounded-lg border border-border/70 bg-bg/40 p-3">
+        <div class="text-[11px] tracking-wide text-text-muted">RECORDS NEGATIVOS</div>
+        <div class="mt-1 flex items-center justify-between gap-2">
+          <div class="text-lg font-semibold">{{ process.negative_records ?? 0 }}</div>
+          @if ((process.negative_records ?? 0) > 0) {
+            <button type="button" class="text-xs text-primary underline" (click)="viewNegatives.emit()">ver</button>
+          }
+        </div>
+      </div>
+      <div class="rounded-lg border border-border/70 bg-bg/40 p-3">
+        <div class="text-[11px] tracking-wide text-text-muted">RECORDS DUPLICADOS</div>
+        <div class="mt-1 flex items-center justify-between gap-2">
+          <div class="text-lg font-semibold">{{ process.duplicate_records ?? 0 }}</div>
+          @if ((process.duplicate_records ?? 0) > 0) {
+            <button type="button" class="text-xs text-primary underline" (click)="viewDuplicates.emit()">ver</button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (process.status === 'ERROR') {
+    <div class="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-text">
+      <div class="font-medium">Error</div>
+      <div class="mt-1 text-xs text-text-muted">{{ process.error_message }}</div>
+    </div>
+  }
+</div>

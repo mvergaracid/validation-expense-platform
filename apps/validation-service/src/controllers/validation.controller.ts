@@ -8,13 +8,14 @@ export class ValidationController {
   constructor(private readonly validationService: ValidationService) {}
 
   @Post()
-  validateExpense(
+  async validateExpense(
     @Body() payload: ValidationRequestDto,
   ): Promise<ValidationResponse> {
-    return this.validationService.validateExpense(payload).then(({ gasto_id, status, alertas }) => ({
+    const { gasto_id, status, alertas } = await this.validationService.validateExpense(payload);
+    return {
       gasto_id,
       status,
       alertas,
-    }));
+    };
   }
 }

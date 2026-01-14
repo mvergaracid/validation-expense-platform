@@ -1,0 +1,11 @@
+{
+  "/api": {
+    "target": "http://validation-bff:3003",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": ""
+    }
+  }
+}
